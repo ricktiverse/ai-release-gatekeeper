@@ -1,0 +1,24 @@
+services:
+  backend:
+    build: ./backend-java
+    ports:
+      - "8081:8080"
+    environment:
+      - GATEKEEPER_API_KEY=changeme
+      - GROQ_API_KEY=${GROQ_API_KEY}
+  webhook:
+    build: ./webhook-node
+    ports:
+      - "3001:3001"
+    environment:
+      - GATEKEEPER_URL=http://backend:8080/api/analyze
+      - GATEKEEPER_API_KEY=changeme
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+    depends_on:
+      - backend
+  dashboard:
+    build: ./dashboard-react
+    ports:
+      - "5173:5173"
+    depends_on:
+      - webhook
