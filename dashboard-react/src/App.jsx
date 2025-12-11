@@ -159,7 +159,7 @@ export default function App() {
       const items = resp.data?.items || [];
       // Map to display shape with all detailed data
       const data = items.map((item, idx) => ({
-        prNumber: item?.request?.prNumber || idx,
+        prNumber: item?.request?.prNumber || `temp-${Date.now()}-${idx}`,
         author: item?.request?.author || 'unknown',
         repository: item?.request?.repository || 'unknown',
         changedFiles: item?.request?.changedFiles || [],
@@ -197,7 +197,19 @@ export default function App() {
           d.spellingSuggestions.forEach(s => d.codeIssues.push(`Spelling suggestion: ${s}`));
         }
       });
-      setPrs(data);
+      
+      // Remove duplicates based on unique PR ID (repository + prNumber)
+      const uniquePRs = [];
+      const seenIds = new Set();
+      data.forEach(pr => {
+        const uniqueId = `${pr.repository}-${pr.prNumber}`;
+        if (!seenIds.has(uniqueId)) {
+          seenIds.add(uniqueId);
+          uniquePRs.push(pr);
+        }
+      });
+      
+      setPrs(uniquePRs);
       setLastRefresh(new Date().toLocaleTimeString());
     } catch (err) {
       console.error('Failed to load results', err);
@@ -243,7 +255,7 @@ export default function App() {
         ) : (
         <div>
           {prs.map((pr, idx) => (
-            <div key={`${pr.prNumber}-${idx}`} style={{
+            <div key={`${pr.repository}-${pr.prNumber}-${idx}`} style={{
               backgroundColor:'white',
               border:`3px solid ${getDecisionBorderColor(pr.decision)}`,
               borderRadius:8,
@@ -263,7 +275,7 @@ export default function App() {
               }} onClick={() => setExpandedPR(expandedPR === idx ? null : idx)}>
                 <div style={{flex:1}}>
                   <h2 style={{margin:'0 0 8px 0', color:'#1a237e'}}>
-                    PR #{pr.prNumber} — {pr.repository}
+                    {pr.repository} <span style={{color:'#666', fontSize:'0.9em'}}>#{pr.prNumber}</span>
                   </h2>
                   <div style={{color:'#555', fontSize:13}}>
                     By <strong>{pr.author}</strong> {pr.receivedAt && `on ${new Date(pr.receivedAt).toLocaleDateString()}`}
@@ -688,7 +700,6 @@ export default function App() {
                                   marginBottom:i < report.recommendations.length - 1 ? 8 : 0,
                                   fontWeight: rec.includes('BLOCK') || rec.includes('ALLOW') ? 'bold' : 'normal',
                                   lineHeight:'1.5',
-                                  paddingLeft:'4px',
                                   borderLeft: `3px solid ${rec.includes('BLOCK') ? '#d32f2f' : rec.includes('WARN') ? '#f57c00' : '#1565c0'}`,
                                   paddingLeft:'10px'
                                 }}>
